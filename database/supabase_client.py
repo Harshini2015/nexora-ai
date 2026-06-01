@@ -60,22 +60,46 @@ def save_interview_result(user_id: str, mode: str, score: int, feedback: str):
         except Exception as e:
             print(f"DB Error (interviews): {e}")
 
+def _safe_int(x, default: int = 0) -> int:
+    try:
+        return int(x)
+    except Exception:
+        return default
+
+
 def get_user_stats(user_id: str):
+    """Return dashboard stats for a single user.
+
+    Implementation is defensive because Supabase client response shapes can vary.
+    We avoid relying on `count` fields that may not be present.
+    """
+
     client = get_supabase()
     stats = {"chats": 0, "resumes": 0, "interviews": 0, "avg_score": 0}
-    if client:
-        try:
-            c_res = client.table("chats").select("id", count="exact").eq("user_id", user_id).execute()
-            r_res = client.table("resumes").select("score").eq("user_id", user_id).execute()
-            i_res = client.table("interviews").select("score").eq("user_id", user_id).execute()
-            
-            stats["chats"] = c_res.count if c_res.count else 0
-            stats["resumes"] = len(r_res.data)
-            stats["interviews"] = len(i_res.data)
-            
-            all_scores = [r["score"] for r in r_res.data] + [i["score"] for i in i_res.data]
-            if all_scores:
-                stats["avg_score"] = sum(all_scores) / len(all_scores)
-        except Exception as e:
-            print(f"DB Error (stats): {e}")
+
+    if not client:
+        return stats
+
+    try:
+        # Count chats without relying on response.count shape
+        chats_rows = client.table("chats").select("id").eq("user_id", user_id).execute()
+        stats["chats"] = len(getattr(chats_rows, "data", []) or [])
+
+        resumes_rows = client.table("resumes").select("score").eq("user_id", user_id).execute()
+        resumes_data = getattr(resumes_rows, "data", []) or []
+        stats["resumes"] = len(resumes_data)
+
+        interviews_rows = client.table("interviews").select("score").eq("user_id", user_id).execute()
+        interviews_data = getattr(interviews_rows, "data", []) or []
+        stats["interviews"] = len(interviews_data)
+
+        all_scores = [_safe_int(r.get("score")) for r in resumes_data] + [_safe_int(i.get("score")) for i in interviews_data]
+        all_scores = [s for s in all_scores if s is not None]
+        if all_scores:
+            stats["avg_score"] = sum(all_scores) / len(all_scores)
+
+    except Exception as e:
+        print(f"DB Error (stats): {e}")
+
     return stats
+
