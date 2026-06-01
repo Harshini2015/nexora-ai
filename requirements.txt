@@ -1,8 +1,7 @@
-streamlit
+gradio
+google-generativeai
 supabase
 python-dotenv
 pandas
 plotly
-openai
-langchain
-PyPDF2
+pypdf
