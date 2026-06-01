@@ -3,12 +3,15 @@ import re
 from modules.gemini_utils import get_gemini_response
 from database.supabase_client import save_interview_result
 
+from modules.session_utils import get_or_create_user_id
+
 def interview_simulator_interface():
-    user_id_state = gr.State("student_user_01")
+    user_id_state = gr.State(None)
     
     with gr.Column() as layout:
-        gr.Markdown("### 🎤 Interview Simulator")
+        gr.Markdown("Interview Simulator")
         gr.Markdown("Practice your interview skills and get instant feedback and scoring.")
+
         
         with gr.Row():
             mode = gr.Radio(choices=["HR", "Technical", "DSA"], label="Interview Mode", value="Technical")
@@ -28,9 +31,10 @@ def interview_simulator_interface():
             prompt = f"Act as an interviewer for a {role_val} position. Generate ONE challenging {mode_val} interview question."
             return get_gemini_response(prompt)
 
-        def evaluate_response(mode_val, role_val, question, answer, user_id):
+        def evaluate_response(mode_val, role_val, question, answer, user_id_state_val):
+            user_id = get_or_create_user_id(user_id_state_val)
             if not answer:
-                return "Please provide an answer to evaluate."
+                return "Please provide an answer to evaluate.", user_id
             
             prompt = f"""
             As an expert interviewer, evaluate this candidate's answer.
@@ -54,9 +58,10 @@ def interview_simulator_interface():
             # Save to database
             save_interview_result(user_id, mode_val, score, feedback)
             
-            return feedback
+            return feedback, user_id
 
         generate_btn.click(generate_question, inputs=[mode, job_role], outputs=[question_display])
-        evaluate_btn.click(evaluate_response, inputs=[mode, job_role, question_display, user_answer, user_id_state], outputs=[feedback_display])
+        evaluate_btn.click(evaluate_response, inputs=[mode, job_role, question_display, user_answer, user_id_state], outputs=[feedback_display, user_id_state])
+
     
     return layout

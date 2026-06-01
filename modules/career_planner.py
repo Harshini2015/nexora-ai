@@ -1,10 +1,12 @@
 import gradio as gr
 from modules.gemini_utils import get_gemini_response
 
+
 def career_planner_interface():
     with gr.Column() as layout:
-        gr.Markdown("### 🎯 Career Planner")
+        gr.Markdown("Career Planner")
         gr.Markdown("Fill in your details to generate a personalized career roadmap.")
+
         
         with gr.Row():
             branch = gr.Dropdown(

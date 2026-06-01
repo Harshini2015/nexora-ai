@@ -3,12 +3,15 @@ import pandas as pd
 import plotly.express as px
 from database.supabase_client import get_user_stats
 
+from modules.session_utils import get_or_create_user_id
+
 def dashboard_interface():
-    user_id_state = gr.State("student_user_01")
+    user_id_state = gr.State(None)
     
     with gr.Column() as layout:
-        gr.Markdown("### 📊 Your Performance Dashboard")
+        gr.Markdown("Your Performance Dashboard")
         gr.Markdown("Overview of your activities and progress in Nexora AI.")
+
         
         refresh_btn = gr.Button("Refresh Data", size="sm")
         
@@ -22,8 +25,10 @@ def dashboard_interface():
             plot_area = gr.Plot(label="Activity Distribution")
             data_table = gr.DataFrame(label="Activity Logs", interactive=False)
 
-        def update_dashboard(user_id):
+        def update_dashboard(user_id_state_val):
+            user_id = get_or_create_user_id(user_id_state_val)
             stats = get_user_stats(user_id)
+
             
             # Prepare chart data
             df = pd.DataFrame({
@@ -42,11 +47,13 @@ def dashboard_interface():
                 df
             )
 
+
         refresh_btn.click(
             update_dashboard, 
             inputs=[user_id_state], 
             outputs=[chats_count, resumes_count, interviews_count, avg_score, plot_area, data_table]
         )
+
         
         # Initial load logic moved to app.py or triggered by refresh
     

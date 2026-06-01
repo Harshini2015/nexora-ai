@@ -15,12 +15,15 @@ def extract_text_from_pdf(file_path):
     except Exception as e:
         return f"Error: {str(e)}"
 
+from modules.session_utils import get_or_create_user_id
+
 def resume_analyzer_interface():
-    user_id_state = gr.State("student_user_01")
+    user_id_state = gr.State(None)
     
     with gr.Column() as layout:
-        gr.Markdown("### 📄 Resume Analyzer")
+        gr.Markdown("Resume Analyzer")
         gr.Markdown("Upload your resume in PDF format to get an ATS score and improvement tips.")
+
         
         with gr.Row():
             file_input = gr.File(label="Upload Resume (PDF)", file_types=[".pdf"])
@@ -28,13 +31,14 @@ def resume_analyzer_interface():
             
         output_report = gr.Markdown(label="Analysis Report")
         
-        def analyze(file, user_id):
+        def analyze(file, user_id_state_val):
+            user_id = get_or_create_user_id(user_id_state_val)
             if file is None:
-                return "Please upload a PDF file."
+                return "Please upload a PDF file.", user_id
             
             text = extract_text_from_pdf(file.name)
             if text.startswith("Error"):
-                return text
+                return text, user_id
             
             prompt = f"""
             Analyze the following resume text as an expert HR recruiter and ATS system.
@@ -57,8 +61,9 @@ def resume_analyzer_interface():
             # Save to database
             save_resume_report(user_id, os.path.basename(file.name), report, score)
             
-            return report
+            return report, user_id
 
-        analyze_btn.click(analyze, inputs=[file_input, user_id_state], outputs=[output_report])
+        analyze_btn.click(analyze, inputs=[file_input, user_id_state], outputs=[output_report, user_id_state])
+
     
     return layout
