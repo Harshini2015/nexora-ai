@@ -1,6 +1,8 @@
 import gradio as gr
 import re
-from modules.gemini_utils import get_gemini_response
+from modules.gemini_utils import get_gemini_json
+
+
 from database.supabase_client import save_chat_to_db
 
 from modules.session_utils import get_or_create_user_id
@@ -36,7 +38,19 @@ def chatbot_interface():
                 f"Provide a helpful, encouraging, and concise response to: {message}"
             )
             
-            bot_message = get_gemini_response(structured_prompt)
+            bot_message = ""
+            try:
+                payload = get_gemini_json(
+                    "Return ONLY valid JSON with schema {\"response\": str}. Do not include any other text.\n"
+                    + structured_prompt,
+                    schema={"response": str},
+                    retries=3,
+                    delay=2,
+                )
+                bot_message = payload["response"]
+            except Exception:
+                bot_message = "Sorry—could not generate a response right now." 
+
             
             # Save to Supabase
             save_chat_to_db(user_id, message, bot_message)

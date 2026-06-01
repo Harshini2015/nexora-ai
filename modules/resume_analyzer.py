@@ -1,9 +1,12 @@
 import gradio as gr
 import pypdf
 import re
+
 import os
-from modules.gemini_utils import get_gemini_response
+from modules.gemini_utils import get_gemini_json
+
 from database.supabase_client import save_resume_report
+
 
 def extract_text_from_pdf(file_path):
     try:
@@ -52,16 +55,43 @@ def resume_analyzer_interface():
             {text}
             """
             
-            report = get_gemini_response(prompt)
-            
-            # Extract score for database (simple regex)
-            score_match = re.search(r"ATS Score:\s*(\d+)", report)
-            score = int(score_match.group(1)) if score_match else 70
-            
+            json_prompt = (
+                "Return ONLY valid JSON with this schema: "
+                "{\"score\": int, \"strengths\": [str], \"weaknesses\": [str], \"suggestions\": [str]}. "
+                "Do not include any other text.\n\n"
+                f"Resume Text:\n{text}\n"
+                "Analyze as an expert HR recruiter and ATS system."
+            )
+
+            payload = None
+            try:
+                payload = get_gemini_json(
+                    json_prompt,
+                    schema={"score": int, "strengths": list, "weaknesses": list, "suggestions": list},
+                    retries=3,
+                    delay=2,
+                )
+            except Exception:
+                # Safe fallback
+                payload = {
+                    "score": 0,
+                    "strengths": [],
+                    "weaknesses": [],
+                    "suggestions": [],
+                }
+
+            report = (
+                f"ATS Score: {payload['score']}\n\n"
+                f"Strengths:\n- " + "\n- ".join(payload["strengths"]) + ("" if payload["strengths"] else "") + "\n\n"
+                f"Weaknesses:\n- " + "\n- ".join(payload["weaknesses"]) + ("" if payload["weaknesses"] else "") + "\n\n"
+                f"Suggestions:\n- " + "\n- ".join(payload["suggestions"]) + ("" if payload["suggestions"] else "")
+            )
+
             # Save to database
-            save_resume_report(user_id, os.path.basename(file.name), report, score)
-            
+            save_resume_report(user_id, os.path.basename(file.name), report, int(payload["score"]))
+
             return report, user_id
+
 
         analyze_btn.click(analyze, inputs=[file_input, user_id_state], outputs=[output_report, user_id_state])
 
