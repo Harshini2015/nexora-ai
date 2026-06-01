@@ -59,6 +59,4 @@ Nexora AI follows a modular architecture for reliability and scalability:
 - `database/`: Supabase client and data persistence helper functions.
 - `assets/`: Static resources and styles.
 
-## 🏆 GDGoC BYOC Challenge
 
-This project prioritizes functionality, reliability, and ease of use, providing a clean "Light Mode" interface for maximum accessibility.
