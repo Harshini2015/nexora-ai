@@ -25,10 +25,13 @@ def main():
                 resume_analyzer_interface()
             with gr.Tab("Interview Simulator"):
                 interview_simulator_interface()
+
             with gr.Tab("Career Planner"):
                 career_planner_interface()
+
             with gr.Tab("Dashboard"):
                 dashboard_interface()
+
 
         gr.HTML(
             """
