@@ -1,10 +1,11 @@
 import gradio as gr
-from modules.gemini_utils import get_gemini_response
-
 import pypdf
+import re
+import os
+from modules.gemini_utils import get_gemini_response
+from database.supabase_client import save_resume_report
 
 def extract_text_from_pdf(file_path):
-    """Extracts text from a PDF file."""
     try:
         reader = pypdf.PdfReader(file_path)
         text = ""
@@ -12,56 +13,52 @@ def extract_text_from_pdf(file_path):
             text += page.extract_text()
         return text
     except Exception as e:
-        return f"Error extracting PDF: {str(e)}"
+        return f"Error: {str(e)}"
 
 def resume_analyzer_interface():
-    with gr.Column(visible=False, elem_classes="glass-card") as layout:
-        gr.HTML("""
-            <div style='margin-bottom: 24px;'>
-                <h3 style='margin: 0; font-size: 20px; font-weight: 700;'>📄 Resume Intelligence</h3>
-                <p style='margin: 0; font-size: 14px; color: #9ca3af;'>Upload your resume for AI-powered analysis and scoring.</p>
-            </div>
-        """)
+    user_id_state = gr.State("student_user_01")
+    
+    with gr.Column() as layout:
+        gr.Markdown("### 📄 Resume Analyzer")
+        gr.Markdown("Upload your resume in PDF format to get an ATS score and improvement tips.")
         
         with gr.Row():
-            with gr.Column(scale=1):
-                file_input = gr.File(
-                    label="Drop your resume here",
-                    file_types=[".pdf"],
-                    elem_id="resume-upload"
-                )
-                analyze_btn = gr.Button("🔍 Analyze Resume", elem_classes="primary-btn")
+            file_input = gr.File(label="Upload Resume (PDF)", file_types=[".pdf"])
+            analyze_btn = gr.Button("Analyze Resume", variant="primary")
             
-            with gr.Column(scale=1):
-                gr.HTML("""
-                    <div style='background: rgba(255,255,255,0.02); padding: 20px; border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1); height: 100%;'>
-                        <h4 style='margin: 0 0 12px 0; font-size: 16px; color: #8b5cf6;'>What we analyze:</h4>
-                        <ul style='margin: 0; padding-left: 20px; color: #9ca3af; font-size: 13px; line-height: 1.8;'>
-                            <li>Keywords & ATS compatibility</li>
-                            <li>Skill gap analysis</li>
-                            <li>Experience formatting</li>
-                            <li>Quantifiable achievements</li>
-                        </ul>
-                    </div>
-                """)
+        output_report = gr.Markdown(label="Analysis Report")
         
-        output = gr.Markdown(label="Analysis Result", elem_id="resume-output")
-        
-        def analyze(file):
+        def analyze(file, user_id):
             if file is None:
-                return "Please upload a resume first."
+                return "Please upload a PDF file."
             
-            # Real text extraction
-            resume_text = extract_text_from_pdf(file.name)
+            text = extract_text_from_pdf(file.name)
+            if text.startswith("Error"):
+                return text
             
-            prompt = f"Analyze this resume text and provide a professional feedback report including ATS score (out of 100), key strengths, critical weaknesses, and actionable improvement suggestions:\n\n{resume_text}"
-            response = get_gemini_response(prompt)
+            prompt = f"""
+            Analyze the following resume text as an expert HR recruiter and ATS system.
+            Provide a detailed report in the following format:
+            1. ATS Score: [A number between 0-100]
+            2. Strengths: [Bullet points]
+            3. Weaknesses: [Bullet points]
+            4. Actionable Suggestions: [Bullet points]
             
-            # Save report to Supabase (simulated user for now)
-            # save_report("harshini@example.com", response)
+            Resume Text:
+            {text}
+            """
             
-            return response
+            report = get_gemini_response(prompt)
+            
+            # Extract score for database (simple regex)
+            score_match = re.search(r"ATS Score:\s*(\d+)", report)
+            score = int(score_match.group(1)) if score_match else 70
+            
+            # Save to database
+            save_resume_report(user_id, os.path.basename(file.name), report, score)
+            
+            return report
 
-        analyze_btn.click(analyze, inputs=[file_input], outputs=[output])
+        analyze_btn.click(analyze, inputs=[file_input, user_id_state], outputs=[output_report])
     
     return layout

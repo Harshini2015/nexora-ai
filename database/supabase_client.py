@@ -11,7 +11,6 @@ key: str = os.environ.get("SUPABASE_KEY")
 # Create reusable Supabase client
 try:
     if not url or not key:
-        print("Warning: SUPABASE_URL or SUPABASE_KEY not found in environment variables.")
         supabase: Client = None
     else:
         supabase: Client = create_client(url, key)
@@ -20,58 +19,63 @@ except Exception as e:
     supabase = None
 
 def get_supabase() -> Client:
-    """Returns the initialized Supabase client."""
     return supabase
 
-def save_chat(user_email: str, message: str, response: str):
-    """Saves a chat message and response to the Supabase 'chats' table."""
+# Database Helper Functions
+def save_chat_to_db(user_id: str, message: str, response: str):
     client = get_supabase()
     if client:
         try:
-            data = {
-                "user_email": user_email,
+            client.table("chats").insert({
+                "user_id": user_id,
                 "message": message,
                 "response": response
-            }
-            client.table("chats").insert(data).execute()
+            }).execute()
         except Exception as e:
-            print(f"Error saving chat to Supabase: {str(e)}")
+            print(f"DB Error (chats): {e}")
 
-def signup(email, password):
-    """Signs up a new user using Supabase Auth."""
-    client = get_supabase()
-    if not client:
-        return "Supabase client not initialized."
-    try:
-        response = client.auth.sign_up({"email": email, "password": password})
-        if response.user:
-            # Insert profile
-            client.table("profiles").insert({"id": response.user.id, "email": email}).execute()
-            return "Success! Please check your email for confirmation."
-        return "Signup failed."
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-def login(email, password):
-    """Logs in a user using Supabase Auth."""
-    client = get_supabase()
-    if not client:
-        return None, "Supabase client not initialized."
-    try:
-        response = client.auth.sign_in_with_password({"email": email, "password": password})
-        if response.session:
-            return response.user.email, "Login successful!"
-        return None, "Invalid credentials."
-    except Exception as e:
-        return None, f"Error: {str(e)}"
-
-def logout():
-    """Logs out the current user."""
+def save_resume_report(user_id: str, filename: str, report: str, score: int):
     client = get_supabase()
     if client:
         try:
-            client.auth.sign_out()
-            return "Logged out successfully."
+            client.table("resumes").insert({
+                "user_id": user_id,
+                "filename": filename,
+                "report": report,
+                "score": score
+            }).execute()
         except Exception as e:
-            return f"Error: {str(e)}"
-    return "Not logged in."
+            print(f"DB Error (resumes): {e}")
+
+def save_interview_result(user_id: str, mode: str, score: int, feedback: str):
+    client = get_supabase()
+    if client:
+        try:
+            client.table("interviews").insert({
+                "user_id": user_id,
+                "mode": mode,
+                "score": score,
+                "feedback": feedback
+            }).execute()
+        except Exception as e:
+            print(f"DB Error (interviews): {e}")
+
+def get_user_stats(user_id: str):
+    client = get_supabase()
+    stats = {"chats": 0, "resumes": 0, "interviews": 0, "avg_score": 0}
+    if client:
+        try:
+            c_res = client.table("chats").select("id", count="exact").eq("user_id", user_id).execute()
+            r_res = client.table("resumes").select("score").eq("user_id", user_id).execute()
+            i_res = client.table("interviews").select("score").eq("user_id", user_id).execute()
+            
+            stats["chats"] = c_res.count if c_res.count else 0
+            stats["resumes"] = len(r_res.data)
+            stats["interviews"] = len(i_res.data)
+            
+            all_scores = [r["score"] for r in r_res.data] + [i["score"] for i in i_res.data]
+            if all_scores:
+                stats["avg_score"] = sum(all_scores) / len(all_scores)
+        except Exception as e:
+            print(f"DB Error (stats): {e}")
+    return stats
