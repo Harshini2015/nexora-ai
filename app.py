@@ -151,9 +151,29 @@ body, .gradio-container {
 footer { display: none !important; }
 """
 
+from database.supabase_client import login, signup, logout
+
 def main():
     with gr.Blocks(css=css, title="Nexora AI") as demo:
-        with gr.Row():
+        user_state = gr.State(None)
+        
+        # Login/Signup Screen
+        with gr.Column(visible=True) as auth_screen:
+            gr.HTML("<h1 class='hero-title' style='text-align: center;'>Welcome to Nexora AI</h1>")
+            with gr.Tabs():
+                with gr.Tab("Login"):
+                    login_email = gr.Textbox(label="Email")
+                    login_pw = gr.Textbox(label="Password", type="password")
+                    login_btn = gr.Button("Login", variant="primary")
+                    login_msg = gr.Markdown()
+                with gr.Tab("Sign Up"):
+                    signup_email = gr.Textbox(label="Email")
+                    signup_pw = gr.Textbox(label="Password", type="password")
+                    signup_btn = gr.Button("Sign Up")
+                    signup_msg = gr.Markdown()
+
+        # Main App Screen
+        with gr.Row(visible=False) as main_app:
             # Sidebar Navigation
             with gr.Column(scale=1, elem_classes="sidebar"):
                 gr.HTML("""
@@ -173,6 +193,7 @@ def main():
                 nav_interview = gr.Button("🎤 Mock Interview", elem_classes="nav-btn")
                 nav_career = gr.Button("🧠 Career Assistant", elem_classes="nav-btn active")
                 nav_history = gr.Button("🕒 Chat History", elem_classes="nav-btn")
+                nav_logout = gr.Button("🚪 Logout", elem_classes="nav-btn")
                 
                 gr.HTML("""
                     <div style='margin-top: auto; padding-top: 30px;'>
@@ -257,6 +278,24 @@ def main():
 
                 for i, btn in enumerate(nav_btns):
                     btn.click(fn=lambda i=i: navigate(i), outputs=pages)
+
+        # Auth Logic
+        def handle_login(email, pw):
+            user, msg = login(email, pw)
+            if user:
+                return gr.update(visible=False), gr.update(visible=True), user
+            return gr.update(visible=True), gr.update(visible=False), None
+
+        def handle_signup(email, pw):
+            return signup(email, pw)
+
+        def handle_logout():
+            logout()
+            return gr.update(visible=True), gr.update(visible=False), None
+
+        login_btn.click(handle_login, [login_email, login_pw], [auth_screen, main_app, user_state])
+        signup_btn.click(handle_signup, [signup_email, signup_pw], signup_msg)
+        nav_logout.click(handle_logout, None, [auth_screen, main_app, user_state])
 
         # Bottom Decoration
         gr.HTML("""

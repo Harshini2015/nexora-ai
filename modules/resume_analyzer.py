@@ -1,6 +1,19 @@
 import gradio as gr
 from modules.gemini_utils import get_gemini_response
 
+import pypdf
+
+def extract_text_from_pdf(file_path):
+    """Extracts text from a PDF file."""
+    try:
+        reader = pypdf.PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+        return text
+    except Exception as e:
+        return f"Error extracting PDF: {str(e)}"
+
 def resume_analyzer_interface():
     with gr.Column(visible=False, elem_classes="glass-card") as layout:
         gr.HTML("""
@@ -33,12 +46,20 @@ def resume_analyzer_interface():
                 """)
         
         output = gr.Markdown(label="Analysis Result", elem_id="resume-output")
-
+        
         def analyze(file):
             if file is None:
                 return "Please upload a resume first."
-            prompt = "Analyze this resume and provide feedback on structure, keywords, and areas of improvement."
+            
+            # Real text extraction
+            resume_text = extract_text_from_pdf(file.name)
+            
+            prompt = f"Analyze this resume text and provide a professional feedback report including ATS score (out of 100), key strengths, critical weaknesses, and actionable improvement suggestions:\n\n{resume_text}"
             response = get_gemini_response(prompt)
+            
+            # Save report to Supabase (simulated user for now)
+            # save_report("harshini@example.com", response)
+            
             return response
 
         analyze_btn.click(analyze, inputs=[file_input], outputs=[output])

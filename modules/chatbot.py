@@ -1,7 +1,11 @@
 import gradio as gr
 from modules.gemini_utils import get_gemini_response
+from database.supabase_client import save_chat
 
 def chatbot_interface():
+    # We'll use a hidden textbox or gr.State to store the current user's email
+    user_email_state = gr.State("harshini@example.com") # Default for now
+    
     with gr.Column(visible=False, elem_classes="glass-card") as layout:
         gr.HTML("""
             <div style='margin-bottom: 24px;'>
@@ -37,15 +41,19 @@ def chatbot_interface():
                 </div>
             """)
         
-        def respond(message, chat_history):
+        def respond(message, chat_history, user_email):
             if not message:
                 return "", chat_history
             
             bot_message = get_gemini_response(message)
+            
+            # Save to Supabase
+            save_chat(user_email, message, bot_message)
+            
             chat_history.append((message, bot_message))
             return "", chat_history
 
-        msg.submit(respond, [msg, chatbot], [msg, chatbot])
-        send_btn.click(respond, [msg, chatbot], [msg, chatbot])
+        msg.submit(respond, [msg, chatbot, user_email_state], [msg, chatbot])
+        send_btn.click(respond, [msg, chatbot, user_email_state], [msg, chatbot])
     
     return layout
