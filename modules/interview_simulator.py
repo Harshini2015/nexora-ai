@@ -1,17 +1,12 @@
 import gradio as gr
-
-
-from modules.gemini_utils import get_gemini_json
+from modules.gemini_utils import get_gemini_response
 from database.supabase_client import save_interview_result
 
-
-from modules.session_utils import get_or_create_user_id
-
 def interview_simulator_interface():
-    user_id_state = gr.State(None)
+    user_id_state = gr.State("student_user_01")
     
     with gr.Column() as layout:
-        gr.Markdown("Interview Simulator")
+        gr.Markdown("### 🎤 Interview Simulator")
         gr.Markdown("Practice your interview skills and get instant feedback and scoring.")
 
         
@@ -31,18 +26,9 @@ def interview_simulator_interface():
             if not role_val:
                 return "Please enter a job role."
             prompt = f"Act as an interviewer for a {role_val} position. Generate ONE challenging {mode_val} interview question."
-            # Use regular response for question generation (not score parsing)
-            return get_gemini_json(
-                "Return ONLY valid JSON for a single string question.\nSchema: {\"question\": str}.\nDo not include any other text.\n"
-                + prompt,
-                schema={"question": str},
-                retries=3,
-                delay=2,
-            )["question"]
+            return get_gemini_response(prompt)
 
-
-        def evaluate_response(mode_val, role_val, question, answer, user_id_state_val):
-            user_id = get_or_create_user_id(user_id_state_val)
+        def evaluate_response(mode_val, role_val, question, answer, user_id):
             if not answer:
                 return "Please provide an answer to evaluate.", user_id
             
@@ -59,39 +45,17 @@ def interview_simulator_interface():
             3. Correct/Better Answer: [How it should have been answered]
             """
             
-            json_prompt = (
-                "Return ONLY valid JSON with this schema: "
-                "{\"score\": int, \"feedback\": str, \"improvements\": [str]}. "
-                "Do not include any other text.\n\n"
-                f"Question: {question}\n"
-                f"Answer: {answer}\n"
-                f"Mode: {mode_val}\n"
-                f"Role: {role_val}\n\n"
-                "Evaluate as an expert interviewer."
-            )
-
-            payload = None
-            try:
-                payload = get_gemini_json(
-                    json_prompt,
-                    schema={"score": int, "feedback": str, "improvements": list},
-                    retries=3,
-                    delay=2,
-                )
-            except Exception:
-                payload = {"score": 0, "feedback": "", "improvements": []}
-
-            feedback = (
-                f"Score: {payload['score']}\n\n"
-                f"Feedback:\n{payload['feedback']}\n\n"
-                f"Improvements:\n- " + "\n- ".join(payload["improvements"]) if payload["improvements"] else "Improvements: -"
-            )
-
+            feedback = get_gemini_response(prompt)
+            
+            # Extract score
+            import re
+            score_match = re.search(r"Score:\s*(\d+)", feedback)
+            score = int(score_match.group(1)) if score_match else 5
+            
             # Save to database
-            save_interview_result(user_id, mode_val, int(payload["score"]), feedback)
+            save_interview_result(user_id, mode_val, score, feedback)
 
             return feedback, user_id
-
 
         generate_btn.click(generate_question, inputs=[mode, job_role], outputs=[question_display])
         evaluate_btn.click(evaluate_response, inputs=[mode, job_role, question_display, user_answer, user_id_state], outputs=[feedback_display, user_id_state])

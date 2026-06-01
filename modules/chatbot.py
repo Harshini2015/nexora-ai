@@ -1,19 +1,13 @@
 import gradio as gr
-import re
-from modules.gemini_utils import get_gemini_json
-
-
+from modules.gemini_utils import get_gemini_response
 from database.supabase_client import save_chat_to_db
 
-from modules.session_utils import get_or_create_user_id
-
-
 def chatbot_interface():
-    user_id_state = gr.State(None)
+    user_id_state = gr.State("student_user_01")
     
     with gr.Column() as layout:
-        gr.Markdown("AI Career Assistant")
-        gr.Markdown("Ask questions about placements, preparation, and industry trends.")
+        gr.Markdown("### 💬 AI Career Assistant")
+        gr.Markdown("Ask me about placements, preparation, or industry trends.")
         
         chatbot = gr.Chatbot(label="Conversation", height=450)
 
@@ -28,8 +22,7 @@ def chatbot_interface():
             
         clear_btn = gr.Button("Clear Chat History", size="sm")
 
-        def respond(message, chat_history, user_id_state_val):
-            user_id = get_or_create_user_id(user_id_state_val)
+        def respond(message, chat_history, user_id):
             if not message:
                 return "", chat_history, user_id
             
@@ -38,29 +31,18 @@ def chatbot_interface():
                 f"Provide a helpful, encouraging, and concise response to: {message}"
             )
             
-            bot_message = ""
-            try:
-                payload = get_gemini_json(
-                    "Return ONLY valid JSON with schema {\"response\": str}. Do not include any other text.\n"
-                    + structured_prompt,
-                    schema={"response": str},
-                    retries=3,
-                    delay=2,
-                )
-                bot_message = payload["response"]
-            except Exception:
-                bot_message = "Sorry—could not generate a response right now." 
-
+            bot_message = get_gemini_response(structured_prompt)
             
             # Save to Supabase
             save_chat_to_db(user_id, message, bot_message)
             
-            chat_history.append((message, bot_message))
+            chat_history.append({"role": "user", "content": message})
+            chat_history.append({"role": "assistant", "content": bot_message})
             return "", chat_history, user_id
 
         msg.submit(respond, [msg, chatbot, user_id_state], [msg, chatbot, user_id_state])
         send_btn.click(respond, [msg, chatbot, user_id_state], [msg, chatbot, user_id_state])
-        clear_btn.click(lambda x: None, inputs=[user_id_state], outputs=[user_id_state], queue=False)
+        clear_btn.click(lambda: None, None, chatbot, queue=False)
 
     
     return layout
