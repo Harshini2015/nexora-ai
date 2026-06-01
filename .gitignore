@@ -1,15 +1,4 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-
-# Project specific
-uploads/
-assets/
+.env 
+venv 
+__pycache__ 
+uploads
