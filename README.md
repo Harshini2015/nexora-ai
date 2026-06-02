@@ -1,6 +1,6 @@
 # Nexora AI 🚀
 
-Your AI-Powered Career & Placement Assistant, built for students to ace their professional journey. Developed for the GDGoC BYOC Challenge.
+Your AI-Powered Career & Placement Assistant, built for students to ace their professional journey.
 
 ## ✨ Features
 
