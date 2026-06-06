@@ -6,14 +6,16 @@ def chatbot_interface(
     active_chat_id: gr.State, 
     all_chats_data: gr.State, 
     chat_titles: gr.State,
-    user_id_state: gr.State,
-    history_buttons: list
+    user_id_state: gr.State
 ):
     with gr.Column(elem_classes=["chat-container"]) as layout:
         # Chat header inside view
         gr.HTML("""
             <div class='main-header'>
-                <h2>💬 AI Career Assistant</h2>
+                <div>
+                    <h2>💬 AI Career Assistant</h2>
+                    <p style='margin: 4px 0 0 0; font-size: 12px; color: #4b5563;'>Instant professional coaching on resume building, mock interviews, and career path planning.</p>
+                </div>
                 <span style='font-size: 12px; color: #10b981; background: #ecfdf5; padding: 4px 8px; border-radius: 12px; font-weight:600;'>Online</span>
             </div>
         """)
@@ -22,8 +24,7 @@ def chatbot_interface(
         chatbot = gr.Chatbot(
             show_label=False, 
             container=False, 
-            elem_classes=["chatbot-wrapper"],
-            type="messages"
+            elem_classes=["chatbot-wrapper"]
         )
         
         # Sticky chat input container at the bottom
@@ -42,18 +43,8 @@ def chatbot_interface(
 
         def respond(message, current_id, chats_dict, titles_dict, user_id):
             if not message or not message.strip():
-                # Avoid empty submissions
                 history = chats_dict.get(current_id, [])
-                sidebar_updates = []
-                chat_ids = list(chats_dict.keys())
-                for i in range(5):
-                    if i < len(chat_ids):
-                        cid = chat_ids[i]
-                        title = titles_dict.get(cid, "New Chat")
-                        sidebar_updates.append(gr.update(value=f"💬 {title}", visible=True))
-                    else:
-                        sidebar_updates.append(gr.update(visible=False))
-                return ["", history, chats_dict, titles_dict] + sidebar_updates
+                return "", history, chats_dict, titles_dict
 
             # Get conversation history for active chat
             if current_id not in chats_dict:
@@ -88,28 +79,18 @@ def chatbot_interface(
             history.append({"role": "assistant", "content": bot_message})
             chats_dict[current_id] = history
             
-            sidebar_updates = []
-            chat_ids = list(chats_dict.keys())
-            for i in range(5):
-                if i < len(chat_ids):
-                    cid = chat_ids[i]
-                    title = titles_dict.get(cid, "New Chat")
-                    sidebar_updates.append(gr.update(value=f"💬 {title}", visible=True))
-                else:
-                    sidebar_updates.append(gr.update(visible=False))
-            
-            return ["", history, chats_dict, titles_dict] + sidebar_updates
+            return "", history, chats_dict, titles_dict
 
         # Bind events
         msg.submit(
             respond, 
             inputs=[msg, active_chat_id, all_chats_data, chat_titles, user_id_state], 
-            outputs=[msg, chatbot, all_chats_data, chat_titles] + history_buttons
+            outputs=[msg, chatbot, all_chats_data, chat_titles]
         )
         send_btn.click(
             respond, 
             inputs=[msg, active_chat_id, all_chats_data, chat_titles, user_id_state], 
-            outputs=[msg, chatbot, all_chats_data, chat_titles] + history_buttons
+            outputs=[msg, chatbot, all_chats_data, chat_titles]
         )
 
     return layout, chatbot

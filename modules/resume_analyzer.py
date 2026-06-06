@@ -22,7 +22,6 @@ def resume_analyzer_interface():
         gr.Markdown("### 📄 Resume Analyzer")
         gr.Markdown("Upload your resume in PDF format to get an ATS score and improvement tips.")
 
-        
         with gr.Row():
             file_input = gr.File(label="Upload Resume (PDF)", file_types=[".pdf"])
             analyze_btn = gr.Button("Analyze Resume", variant="primary")
@@ -33,7 +32,23 @@ def resume_analyzer_interface():
             if file is None:
                 return "Please upload a PDF file."
             
-            text = extract_text_from_pdf(file.name)
+            # Defensive path extraction for different Gradio version payloads
+            file_path = None
+            if isinstance(file, str):
+                file_path = file
+            elif hasattr(file, "name") and file.name:
+                file_path = file.name
+            elif hasattr(file, "path") and file.path:
+                file_path = file.path
+            elif isinstance(file, dict) and "path" in file:
+                file_path = file["path"]
+            elif isinstance(file, dict) and "name" in file:
+                file_path = file["name"]
+                
+            if not file_path:
+                return "Error: Unable to locate uploaded file path."
+            
+            text = extract_text_from_pdf(file_path)
             if text.startswith("Error"):
                 return text
             
@@ -56,7 +71,7 @@ def resume_analyzer_interface():
             score = int(score_match.group(1)) if score_match else 70
             
             # Save to database
-            save_resume_report(user_id, os.path.basename(file.name), report, score)
+            save_resume_report(user_id, os.path.basename(file_path), report, score)
             
             return report
 

@@ -1,10 +1,8 @@
 import gradio as gr
 from modules.chatbot import chatbot_interface
-from modules.dashboard import dashboard_interface
 from modules.resume_analyzer import resume_analyzer_interface
 from modules.interview_simulator import interview_simulator_interface
 from modules.career_planner import career_planner_interface
-from modules.analytics import analytics_interface
 
 def build_home_view():
     with gr.Column(elem_classes=["page-container"]) as layout:
@@ -66,94 +64,53 @@ def build_settings_view():
             
     return layout, reset_btn
 
-def build_about_view():
-    with gr.Column(elem_classes=["page-container"]) as layout:
-        gr.HTML("""
-            <div style='margin-bottom: 24px;'>
-                <h1 style='font-size: 24px; font-weight: 800; color: #111827; margin: 0;'>ℹ️ About Nexora AI</h1>
-                <p style='color: #4b5563; font-size: 14px; margin-top: 4px;'>Learn more about the application.</p>
-            </div>
-        """)
-        
-        gr.Markdown(
-            """
-            Nexora AI is a comprehensive career readiness platform designed to elevate college students' preparation processes.
-            
-            ### Core Technology Stack
-            - **Frontend:** Gradio 6.x Blocks, Custom HTML5/CSS3 Light-Theme Styles system, Vanilla Javascript
-            - **Large Language Model:** Llama 3.1 8B via Groq API (High Performance Cloud Inference)
-            - **Persistence Layer:** Supabase Client (Remote PostgreSQL Backend)
-            - **Helpers:** PyPDF (local resume parsing), Plotly (analytics visualizations), Pandas (structured frames)
-            
-            ### Platform Version
-            - **Release version:** v1.1.0-light-release (June 2026)
-            """
-        )
-    return layout
-
 def mount_feature_views(
     active_chat_id: gr.State, 
     all_chats_data: gr.State, 
     chat_titles: gr.State,
-    user_id_state: gr.State,
-    history_buttons: list
+    user_id_state: gr.State
 ):
     """Mount all views and return references for nav wiring."""
     views = {}
     cards = {}
     
     # 1. Home (visible by default)
-    home_layout, card_chat, card_res, card_int, card_car = build_home_view()
-    views["home"] = home_layout
+    with gr.Column(visible=True, elem_id="page-home") as home_col:
+        _, card_chat, card_res, card_int, card_car = build_home_view()
+    views["home"] = home_col
     cards["chat"] = card_chat
     cards["resume"] = card_res
     cards["interview"] = card_int
     cards["career"] = card_car
     
-    # 2. Dashboard (invisible by default)
-    dash_layout = dashboard_interface()
-    dash_layout.visible = False
-    views["dashboard"] = dash_layout
+    # 2. Chat Assistant (visible in DOM, hidden via CSS initially)
+    with gr.Column(visible=True, elem_id="page-chat") as chat_col:
+        _, chatbot_ref = chatbot_interface(
+            active_chat_id=active_chat_id,
+            all_chats_data=all_chats_data,
+            chat_titles=chat_titles,
+            user_id_state=user_id_state
+        )
+    views["chat"] = chat_col
     
-    # 3. Chat Assistant (invisible by default)
-    chat_layout, chatbot_ref = chatbot_interface(
-        active_chat_id=active_chat_id,
-        all_chats_data=all_chats_data,
-        chat_titles=chat_titles,
-        user_id_state=user_id_state,
-        history_buttons=history_buttons
-    )
-    chat_layout.visible = False
-    views["chat"] = chat_layout
+    # 3. Resume Analyzer (visible in DOM, hidden via CSS initially)
+    with gr.Column(visible=True, elem_id="page-resume") as resume_col:
+        resume_analyzer_interface()
+    views["resume"] = resume_col
     
-    # 4. Resume Analyzer (invisible by default)
-    resume_layout = resume_analyzer_interface()
-    resume_layout.visible = False
-    views["resume"] = resume_layout
+    # 4. Interview Simulator (visible in DOM, hidden via CSS initially)
+    with gr.Column(visible=True, elem_id="page-interview") as interview_col:
+        interview_simulator_interface()
+    views["interview"] = interview_col
     
-    # 5. Interview Simulator (invisible by default)
-    interview_layout = interview_simulator_interface()
-    interview_layout.visible = False
-    views["interview"] = interview_layout
+    # 5. Career Planner (visible in DOM, hidden via CSS initially)
+    with gr.Column(visible=True, elem_id="page-career") as career_col:
+        career_planner_interface()
+    views["career"] = career_col
     
-    # 6. Career Planner (invisible by default)
-    career_layout = career_planner_interface()
-    career_layout.visible = False
-    views["career"] = career_layout
-    
-    # 7. Analytics (invisible by default)
-    analytics_layout = analytics_interface()
-    analytics_layout.visible = False
-    views["analytics"] = analytics_layout
-    
-    # 8. Settings (invisible by default)
-    settings_layout, reset_btn = build_settings_view()
-    settings_layout.visible = False
-    views["settings"] = settings_layout
-    
-    # 9. About (invisible by default)
-    about_layout = build_about_view()
-    about_layout.visible = False
-    views["about"] = about_layout
+    # 6. Settings (visible in DOM, hidden via CSS initially)
+    with gr.Column(visible=True, elem_id="page-settings") as settings_col:
+        _, reset_btn = build_settings_view()
+    views["settings"] = settings_col
     
     return views, cards, chatbot_ref, reset_btn

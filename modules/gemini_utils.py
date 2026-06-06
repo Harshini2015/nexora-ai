@@ -8,10 +8,14 @@ load_dotenv()
 def get_groq_client():
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY not found in environment variables")
+        raise ValueError("GROQ_API_KEY is not configured in the environment variables.")
     return groq.Groq(api_key=api_key)
 
 def get_gemini_response(prompt, retries=3, delay=2):
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return "Error: GROQ_API_KEY is missing. Please configure your GROQ_API_KEY in the environment variables or Space secrets to enable AI capabilities."
+
     for i in range(retries):
         try:
             client = get_groq_client()

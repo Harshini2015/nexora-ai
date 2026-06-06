@@ -1,10 +1,7 @@
 gradio
 groq
-google-generativeai
-google-api-core
 python-dotenv
 supabase
 pypdf
 pandas
 plotly
-
