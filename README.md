@@ -4,15 +4,25 @@ Your comprehensive AI-powered career and placement preparation assistant, built 
 
 ---
 
-## 🎨 Screenshots & Mockups
+## 🎨 Screenshots
 
-### 1. Application Dashboard
-Mockup showcasing the premium layout, visual charts, and sidebar options:
-![Dashboard Screenshot](screenshots/nexora_dashboard.png)
+### 1. Home Page
+![Home Page](screenshots/home_page.png)
 
-### 2. AI Chat Coach (Chatbot)
-Interactive messaging thread with your personal AI placement assistant:
-![Chatbot Screenshot](screenshots/nexora_chatbot.png)
+### 2. AI Chat Coach
+![Chat Assistant](screenshots/chat_page.png)
+
+### 3. Resume Analyzer
+![Resume Analyzer](screenshots/resume_page.png)
+
+### 4. Interview Simulator
+![Interview Simulator](screenshots/interview_page.png)
+
+### 5. Career Planner
+![Career Planner](screenshots/career_page.png)
+
+### 6. Settings Page
+![Settings Page](screenshots/settings_page.png)
 
 ---
 
