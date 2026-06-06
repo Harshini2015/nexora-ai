@@ -2,6 +2,8 @@
 
 Your comprehensive AI-powered career and placement preparation assistant, built to empower students and job seekers in acing their professional journeys.
 
+🌐 **Live Demo:** https://nexora-ai-cjo5.onrender.com
+
 ---
 
 ## 🎨 Screenshots
