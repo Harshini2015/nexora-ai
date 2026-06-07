@@ -1,3 +1,17 @@
+---
+title: {{title}}
+emoji: {{emoji}}
+colorFrom: {{colorFrom}}
+colorTo: {{colorTo}}
+sdk: {{sdk}}
+sdk_version: "{{sdkVersion}}"
+{{#pythonVersion}}
+python_version: "{{pythonVersion}}"
+{{/pythonVersion}}
+app_file: app.py
+pinned: false
+--
+
 # Nexora-AI 🚀
 
 Your comprehensive AI-powered career and placement preparation assistant, built to empower students and job seekers in acing their professional journeys.
