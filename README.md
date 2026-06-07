@@ -1,4 +1,14 @@
-
+---
+title: Nexora-AI
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "5.34.2"
+python_version: "3.10"
+app_file: app.py
+pinned: false
+---
 # Nexora-AI 🚀
 
 Your comprehensive AI-powered career and placement preparation assistant, built to empower students and job seekers in acing their professional journeys.
